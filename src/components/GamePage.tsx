@@ -14,7 +14,7 @@ interface GamePageProps {
   hidden?: boolean
 }
 
-function fireP1Confetti(colors: string[]) {
+function fireP1Confetti(colors: string[], timeouts: number[]) {
   const c = [...colors, '#ffffff', '#fffbe6', ...colors]
   const drift = { colors: c, disableForReducedMotion: true, angle: 90, gravity: 0.35, decay: 0.94, scalar: 1.1 }
 
@@ -22,23 +22,23 @@ function fireP1Confetti(colors: string[]) {
   confetti({ ...drift, particleCount: 60, spread: 140, origin: { y: 0.5, x: 0.2 }, startVelocity: 14, ticks: 500 })
   confetti({ ...drift, particleCount: 60, spread: 140, origin: { y: 0.5, x: 0.8 }, startVelocity: 14, ticks: 500 })
 
-  setTimeout(() => {
+  timeouts.push(window.setTimeout(() => {
     confetti({ ...drift, particleCount: 60, spread: 120, origin: { y: 0.52, x: 0.4 }, startVelocity: 16, ticks: 500 })
     confetti({ ...drift, particleCount: 60, spread: 120, origin: { y: 0.52, x: 0.6 }, startVelocity: 16, ticks: 500 })
-  }, 1500)
+  }, 1500))
 
-  setTimeout(() => {
+  timeouts.push(window.setTimeout(() => {
     confetti({ ...drift, particleCount: 50, spread: 160, origin: { y: 0.5, x: 0.5 }, startVelocity: 14, ticks: 500 })
     confetti({ ...drift, particleCount: 40, spread: 130, origin: { y: 0.5, x: 0.3 }, startVelocity: 12, ticks: 500 })
     confetti({ ...drift, particleCount: 40, spread: 130, origin: { y: 0.5, x: 0.7 }, startVelocity: 12, ticks: 500 })
-  }, 3500)
+  }, 3500))
 
-  setTimeout(() => {
+  timeouts.push(window.setTimeout(() => {
     confetti({ ...drift, particleCount: 50, spread: 140, origin: { y: 0.52, x: 0.5 }, startVelocity: 12, ticks: 500 })
-  }, 5500)
+  }, 5500))
 }
 
-function fireP2Confetti(colors: string[]) {
+function fireP2Confetti(colors: string[], timeouts: number[]) {
   const c = [...colors, '#ffffff', '#fffbe6', ...colors]
   const drift = { colors: c, disableForReducedMotion: true, angle: 270, gravity: -0.35, decay: 0.94, scalar: 1.1 }
 
@@ -46,20 +46,20 @@ function fireP2Confetti(colors: string[]) {
   confetti({ ...drift, particleCount: 60, spread: 140, origin: { y: 0.5, x: 0.2 }, startVelocity: 14, ticks: 500 })
   confetti({ ...drift, particleCount: 60, spread: 140, origin: { y: 0.5, x: 0.8 }, startVelocity: 14, ticks: 500 })
 
-  setTimeout(() => {
+  timeouts.push(window.setTimeout(() => {
     confetti({ ...drift, particleCount: 60, spread: 120, origin: { y: 0.48, x: 0.4 }, startVelocity: 16, ticks: 500 })
     confetti({ ...drift, particleCount: 60, spread: 120, origin: { y: 0.48, x: 0.6 }, startVelocity: 16, ticks: 500 })
-  }, 1500)
+  }, 1500))
 
-  setTimeout(() => {
+  timeouts.push(window.setTimeout(() => {
     confetti({ ...drift, particleCount: 50, spread: 160, origin: { y: 0.5, x: 0.5 }, startVelocity: 14, ticks: 500 })
     confetti({ ...drift, particleCount: 40, spread: 130, origin: { y: 0.5, x: 0.3 }, startVelocity: 12, ticks: 500 })
     confetti({ ...drift, particleCount: 40, spread: 130, origin: { y: 0.5, x: 0.7 }, startVelocity: 12, ticks: 500 })
-  }, 3500)
+  }, 3500))
 
-  setTimeout(() => {
+  timeouts.push(window.setTimeout(() => {
     confetti({ ...drift, particleCount: 50, spread: 140, origin: { y: 0.48, x: 0.5 }, startVelocity: 12, ticks: 500 })
-  }, 5500)
+  }, 5500))
 }
 
 export function GamePage({ settings, onOpenSettings, hidden }: GamePageProps) {
@@ -68,6 +68,7 @@ export function GamePage({ settings, onOpenSettings, hidden }: GamePageProps) {
   const [gamesWon, setGamesWon] = useState({ p1: 0, p2: 0 })
   const countedForPhase = useRef(false)
   const confettiFired = useRef(false)
+  const confettiTimeouts = useRef<number[]>([])
 
   const prevDiceCount = useRef(settings.diceCount)
   const prevRollCount = useRef(settings.rollCount)
@@ -104,13 +105,16 @@ export function GamePage({ settings, onOpenSettings, hidden }: GamePageProps) {
       const p2c = getColorPreset(settings.p2Color)
 
       if (winner === 1 || winner === 0) {
-        fireP1Confetti([p1c.accent, p1c.accent2])
+        fireP1Confetti([p1c.accent, p1c.accent2], confettiTimeouts.current)
       }
       if (winner === 2 || winner === 0) {
-        fireP2Confetti([p2c.accent, p2c.accent2])
+        fireP2Confetti([p2c.accent, p2c.accent2], confettiTimeouts.current)
       }
     } else if (state.phase === 'playing') {
       confettiFired.current = false
+      confettiTimeouts.current.forEach(clearTimeout)
+      confettiTimeouts.current = []
+      confetti.reset()
     }
   }, [state.phase, state.result, settings.p1Color, settings.p2Color])
 
@@ -136,6 +140,9 @@ export function GamePage({ settings, onOpenSettings, hidden }: GamePageProps) {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility)
       wakeLockRef.current?.release()
+      confettiTimeouts.current.forEach(clearTimeout)
+      confettiTimeouts.current = []
+      confetti.reset()
     }
   }, [])
 

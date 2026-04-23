@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import type { Settings } from '../hooks/useSettings'
-import { playSoundOnce, SOUND_NAMES } from '../utils/sounds'
+import { playSoundOnce, stopSound, SOUND_NAMES } from '../utils/sounds'
 import type { SoundName } from '../utils/sounds'
 import { COLOR_PRESETS } from '../utils/colors'
 
@@ -11,6 +12,20 @@ interface SettingsPageProps {
 }
 
 export function SettingsPage({ settings, onUpdate, onBack, onOpenHowToPlay }: SettingsPageProps) {
+  useEffect(() => {
+    return () => stopSound()
+  }, [])
+
+  const handleBack = () => {
+    stopSound()
+    onBack()
+  }
+
+  const handleToggleTimer = () => {
+    if (settings.timerEnabled) stopSound()
+    onUpdate({ timerEnabled: !settings.timerEnabled })
+  }
+
   const formatDuration = (seconds: number) => {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
@@ -21,7 +36,7 @@ export function SettingsPage({ settings, onUpdate, onBack, onOpenHowToPlay }: Se
   return (
     <div className="settings-page">
       <div className="settings-header">
-        <button className="settings-back-btn" onClick={onBack}>
+        <button className="settings-back-btn" onClick={handleBack}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" style={{ verticalAlign: 'middle', marginRight: 4 }}>
             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
@@ -126,7 +141,7 @@ export function SettingsPage({ settings, onUpdate, onBack, onOpenHowToPlay }: Se
             <span className="settings-row-label">Enable Timer</span>
             <div
               className={`toggle ${settings.timerEnabled ? 'active' : ''}`}
-              onClick={() => onUpdate({ timerEnabled: !settings.timerEnabled })}
+              onClick={handleToggleTimer}
             >
               <div className="toggle-knob" />
             </div>
