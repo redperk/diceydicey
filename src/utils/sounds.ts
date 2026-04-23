@@ -1,136 +1,160 @@
-export type SoundName = 'gong' | 'chime' | 'bell' | 'synth'
+export type SoundName =
+  | 'platinum' | 'helium' | 'argon'
+  | 'copernicium' | 'curium' | 'neptunium'
 
 export const SOUND_NAMES: { value: SoundName; label: string }[] = [
-  { value: 'gong', label: 'Gong' },
-  { value: 'chime', label: 'Chime' },
-  { value: 'bell', label: 'Bell' },
-  { value: 'synth', label: 'Synth Pad' },
+  { value: 'platinum', label: 'Platinum' },
+  { value: 'helium', label: 'Helium' },
+  { value: 'argon', label: 'Argon' },
+  { value: 'copernicium', label: 'Copernicium' },
+  { value: 'curium', label: 'Curium' },
+  { value: 'neptunium', label: 'Neptunium' },
 ]
 
-let audioCtx: AudioContext | null = null
+const BASE = import.meta.env.BASE_URL
 
-function getAudioContext(): AudioContext {
-  if (!audioCtx) {
-    audioCtx = new AudioContext()
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume()
-  }
-  return audioCtx
+const SOUND_FILES: Record<SoundName, string> = {
+  platinum: `${BASE}sounds/platinum.ogg`,
+  helium: `${BASE}sounds/helium.ogg`,
+  argon: `${BASE}sounds/argon.ogg`,
+  copernicium: `${BASE}sounds/alarm-Copernicium.ogg`,
+  curium: `${BASE}sounds/alarm-Curium.ogg`,
+  neptunium: `${BASE}sounds/alarm-Neptunium.ogg`,
 }
 
-function playGong(ctx: AudioContext, now: number) {
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(150, now)
-  osc.frequency.exponentialRampToValueAtTime(80, now + 3)
-  gain.gain.setValueAtTime(0, now)
-  gain.gain.linearRampToValueAtTime(0.4, now + 0.02)
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 4)
-  osc.start(now)
-  osc.stop(now + 4)
-
-  const osc2 = ctx.createOscillator()
-  const gain2 = ctx.createGain()
-  osc2.connect(gain2)
-  gain2.connect(ctx.destination)
-  osc2.type = 'sine'
-  osc2.frequency.setValueAtTime(300, now)
-  osc2.frequency.exponentialRampToValueAtTime(160, now + 2.5)
-  gain2.gain.setValueAtTime(0, now)
-  gain2.gain.linearRampToValueAtTime(0.15, now + 0.02)
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.5)
-  osc2.start(now)
-  osc2.stop(now + 2.5)
-}
-
-function playChime(ctx: AudioContext, now: number) {
-  const frequencies = [523, 659, 784]
-  frequencies.forEach((freq, i) => {
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(freq, now)
-    const offset = i * 0.15
-    gain.gain.setValueAtTime(0, now + offset)
-    gain.gain.linearRampToValueAtTime(0.2, now + offset + 0.01)
-    gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 2)
-    osc.start(now + offset)
-    osc.stop(now + offset + 2)
-  })
-}
-
-function playBell(ctx: AudioContext, now: number) {
-  const harmonics = [1, 2.76, 5.4, 8.93]
-  const amplitudes = [0.3, 0.15, 0.08, 0.04]
-  const decays = [3, 2, 1.5, 1]
-
-  harmonics.forEach((h, i) => {
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(440 * h, now)
-    gain.gain.setValueAtTime(0, now)
-    gain.gain.linearRampToValueAtTime(amplitudes[i], now + 0.005)
-    gain.gain.exponentialRampToValueAtTime(0.001, now + decays[i])
-    osc.start(now)
-    osc.stop(now + decays[i])
-  })
-}
-
-function playSynth(ctx: AudioContext, now: number) {
-  const osc = ctx.createOscillator()
-  const gain = ctx.createGain()
-  osc.connect(gain)
-  gain.connect(ctx.destination)
-  osc.type = 'triangle'
-  osc.frequency.setValueAtTime(261.6, now)
-  osc.frequency.linearRampToValueAtTime(392, now + 0.5)
-  gain.gain.setValueAtTime(0, now)
-  gain.gain.linearRampToValueAtTime(0.25, now + 0.3)
-  gain.gain.setValueAtTime(0.25, now + 1.5)
-  gain.gain.linearRampToValueAtTime(0, now + 3)
-  osc.start(now)
-  osc.stop(now + 3)
-
-  const osc2 = ctx.createOscillator()
-  const gain2 = ctx.createGain()
-  osc2.connect(gain2)
-  gain2.connect(ctx.destination)
-  osc2.type = 'sine'
-  osc2.frequency.setValueAtTime(523.25, now)
-  osc2.frequency.linearRampToValueAtTime(783.99, now + 0.5)
-  gain2.gain.setValueAtTime(0, now)
-  gain2.gain.linearRampToValueAtTime(0.1, now + 0.4)
-  gain2.gain.setValueAtTime(0.1, now + 1.5)
-  gain2.gain.linearRampToValueAtTime(0, now + 3)
-  osc2.start(now)
-  osc2.stop(now + 3)
-}
+let activeAudio: HTMLAudioElement | null = null
 
 export function playSound(name: SoundName): void {
-  const ctx = getAudioContext()
-  const now = ctx.currentTime
+  stopSound()
+  const audio = new Audio(SOUND_FILES[name])
+  audio.loop = true
+  audio.volume = 0.7
+  audio.play().catch(() => {})
+  activeAudio = audio
+}
 
-  switch (name) {
-    case 'gong':
-      playGong(ctx, now)
-      break
-    case 'chime':
-      playChime(ctx, now)
-      break
-    case 'bell':
-      playBell(ctx, now)
-      break
-    case 'synth':
-      playSynth(ctx, now)
-      break
+export function stopSound(): void {
+  if (activeAudio) {
+    activeAudio.pause()
+    activeAudio.currentTime = 0
+    activeAudio = null
+  }
+}
+
+export function playSoundOnce(name: SoundName): void {
+  stopSound()
+  const audio = new Audio(SOUND_FILES[name])
+  audio.volume = 0.7
+  audio.play().catch(() => {})
+  activeAudio = audio
+}
+
+let diceAudioCtx: AudioContext | null = null
+
+function getDiceAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null
+  const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+  if (!Ctx) return null
+  if (!diceAudioCtx) diceAudioCtx = new Ctx()
+  if (diceAudioCtx.state === 'suspended') diceAudioCtx.resume().catch(() => {})
+  return diceAudioCtx
+}
+
+function makeNoiseBuffer(ctx: AudioContext, durationSec: number, decayRate: number): AudioBuffer {
+  const sampleRate = ctx.sampleRate
+  const length = Math.floor(sampleRate * durationSec)
+  const buffer = ctx.createBuffer(1, length, sampleRate)
+  const data = buffer.getChannelData(0)
+  for (let i = 0; i < length; i++) {
+    const t = i / sampleRate
+    const env = Math.exp(-decayRate * t)
+    data[i] = (Math.random() * 2 - 1) * env
+  }
+  return buffer
+}
+
+function scheduleDiceImpact(ctx: AudioContext, when: number, intensity: number): void {
+  const tickBuffer = makeNoiseBuffer(ctx, 0.025, 220)
+  const tickSource = ctx.createBufferSource()
+  tickSource.buffer = tickBuffer
+
+  const tickFilter = ctx.createBiquadFilter()
+  tickFilter.type = 'bandpass'
+  tickFilter.frequency.value = 3500 + Math.random() * 2000
+  tickFilter.Q.value = 1.5
+
+  const tickGain = ctx.createGain()
+  tickGain.gain.value = 0.45 * intensity
+
+  tickSource.connect(tickFilter)
+  tickFilter.connect(tickGain)
+  tickGain.connect(ctx.destination)
+  tickSource.start(when)
+
+  const bodyBuffer = makeNoiseBuffer(ctx, 0.09, 55)
+  const bodySource = ctx.createBufferSource()
+  bodySource.buffer = bodyBuffer
+
+  const bodyFilter = ctx.createBiquadFilter()
+  bodyFilter.type = 'bandpass'
+  bodyFilter.frequency.value = 500 + Math.random() * 300
+  bodyFilter.Q.value = 5
+
+  const bodyGain = ctx.createGain()
+  bodyGain.gain.value = 0.4 * intensity
+
+  bodySource.connect(bodyFilter)
+  bodyFilter.connect(bodyGain)
+  bodyGain.connect(ctx.destination)
+  bodySource.start(when)
+
+  const thumpBuffer = makeNoiseBuffer(ctx, 0.12, 38)
+  const thumpSource = ctx.createBufferSource()
+  thumpSource.buffer = thumpBuffer
+
+  const thumpFilter = ctx.createBiquadFilter()
+  thumpFilter.type = 'lowpass'
+  thumpFilter.frequency.value = 220 + Math.random() * 120
+  thumpFilter.Q.value = 1.2
+
+  const thumpGain = ctx.createGain()
+  thumpGain.gain.value = 0.55 * intensity
+
+  thumpSource.connect(thumpFilter)
+  thumpFilter.connect(thumpGain)
+  thumpGain.connect(ctx.destination)
+  thumpSource.start(when)
+}
+
+export function playDiceRoll(): void {
+  const ctx = getDiceAudioCtx()
+  if (!ctx) return
+
+  const start = ctx.currentTime
+  const totalDuration = 0.75
+
+  const initialCluster = 8 + Math.floor(Math.random() * 4)
+  for (let i = 0; i < initialCluster; i++) {
+    const when = start + Math.random() * 0.06
+    const intensity = 0.55 + Math.random() * 0.4
+    scheduleDiceImpact(ctx, when, intensity)
+  }
+
+  const tumbleCount = 30 + Math.floor(Math.random() * 8)
+  for (let i = 0; i < tumbleCount; i++) {
+    const progress = i / Math.max(1, tumbleCount - 1)
+    const baseTime = 0.04 + progress * (totalDuration - 0.04)
+    const jitter = (Math.random() - 0.5) * 0.09
+    const when = start + Math.max(0, baseTime + jitter)
+    const fade = 1 - Math.pow(progress, 1.4) * 0.65
+    const intensity = (0.3 + Math.random() * 0.4) * fade
+    scheduleDiceImpact(ctx, when, Math.max(0.16, intensity))
+  }
+
+  const settleCount = 6 + Math.floor(Math.random() * 4)
+  for (let i = 0; i < settleCount; i++) {
+    const when = start + totalDuration - 0.1 + Math.random() * 0.1
+    const intensity = 0.3 + Math.random() * 0.25
+    scheduleDiceImpact(ctx, when, intensity)
   }
 }

@@ -1,29 +1,40 @@
 import { useState, useCallback } from 'react'
+import { SOUND_NAMES } from '../utils/sounds'
 import type { SoundName } from '../utils/sounds'
 
 export interface Settings {
   diceCount: number
-  roundCount: number
+  rollCount: number
   timerEnabled: boolean
   timerDuration: number
   timerSound: SoundName
+  p1Color: string
+  p2Color: string
 }
 
 const STORAGE_KEY = 'dicey-dicey-settings'
 
 const DEFAULT_SETTINGS: Settings = {
   diceCount: 6,
-  roundCount: 3,
+  rollCount: 3,
   timerEnabled: true,
   timerDuration: 90,
-  timerSound: 'gong',
+  timerSound: 'platinum',
+  p1Color: 'Purple',
+  p2Color: 'Amber',
 }
+
+const VALID_SOUNDS = new Set(SOUND_NAMES.map(s => s.value))
 
 function loadSettings(): Settings {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }
+      const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(saved) }
+      if (!VALID_SOUNDS.has(parsed.timerSound)) {
+        parsed.timerSound = DEFAULT_SETTINGS.timerSound
+      }
+      return parsed
     }
   } catch {
     /* ignore parse errors */

@@ -1,127 +1,116 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Die } from './Die'
-import type { PlayerState, GamePhase, RoundResult } from '../hooks/useGameState'
+import { playDiceRoll } from '../utils/sounds'
+import type { PlayerState, GamePhase } from '../hooks/useGameState'
 
 interface PlayerHalfProps {
   player: PlayerState
   playerNum: 1 | 2
-  currentRound: number
-  totalRounds: number
+  totalRolls: number
   phase: GamePhase
-  latestResult: RoundResult | null
+  highlightValue?: number
   onRoll: () => void
   onToggleFreeze: (index: number) => void
-  onLockIn: () => void
 }
 
 export function PlayerHalf({
   player,
   playerNum,
-  currentRound,
-  totalRounds,
+  totalRolls,
   phase,
-  latestResult,
+  highlightValue,
   onRoll,
   onToggleFreeze,
-  onLockIn,
 }: PlayerHalfProps) {
   const [isRolling, setIsRolling] = useState(false)
+  const [displayValues, setDisplayValues] = useState<number[]>([])
   const rollingTimeout = useRef<number | undefined>(undefined)
 
+  const diceCount = player.dice.length
+  const isTiebreaker = phase === 'tiebreaker'
+  const isPlayable = phase === 'playing' || isTiebreaker
+
   const handleRoll = useCallback(() => {
-    if (isRolling || player.rollsLeft <= 0 || phase !== 'playing') return
+    if (isRolling || player.rollsLeft <= 0 || !isPlayable) return
+    playDiceRoll()
     setIsRolling(true)
     if (rollingTimeout.current) clearTimeout(rollingTimeout.current)
     rollingTimeout.current = window.setTimeout(() => {
       onRoll()
       setIsRolling(false)
-    }, 400)
-  }, [isRolling, player.rollsLeft, phase, onRoll])
+    }, 800)
+  }, [isRolling, player.rollsLeft, isPlayable, onRoll])
 
-  const diceCount = player.dice.length
+  useEffect(() => {
+    if (!isRolling) {
+      setDisplayValues([])
+      return
+    }
+
+    const randomize = () =>
+      Array.from({ length: diceCount }, (_, i) =>
+        player.frozen[i] ? player.dice[i] : Math.floor(Math.random() * 6) + 1
+      )
+
+    setDisplayValues(randomize())
+    const interval = setInterval(() => setDisplayValues(randomize()), 80)
+    return () => clearInterval(interval)
+  }, [isRolling, diceCount, player.frozen, player.dice])
+
   const dieSize = diceCount <= 5 ? 54 : diceCount <= 6 ? 48 : diceCount <= 8 ? 44 : 40
 
-  const canFreeze = phase === 'playing' && player.rollsLeft > 0 && player.rollsLeft < 3 && !isRolling
-  const canRoll = phase === 'playing' && player.rollsLeft > 0 && !isRolling
-  const canLockIn = phase === 'playing' && player.rollsLeft > 0 && player.rollsLeft < 3 && !isRolling
-  const isWaiting = phase === 'playing' && player.rollsLeft === 0
-  const hasRolled = player.rollsLeft < 3
+  const rollsUsed = totalRolls - player.rollsLeft
+  const hasRolled = rollsUsed > 0
+  const canFreeze = phase === 'playing' && player.rollsLeft > 0 && hasRolled && !isRolling
+  const canRoll = isPlayable && player.rollsLeft > 0 && !isRolling
+  const isWaiting = isPlayable && player.rollsLeft === 0
 
   return (
     <div className={`player-half p${playerNum}-half`}>
       <div className="player-info">
         <span className={`player-label p${playerNum}`}>Player {playerNum}</span>
-        <span className="round-info">
-          Round {currentRound}/{totalRounds}
-          {hasRolled && ` \u00b7 Score: ${player.roundsWon}`}
-        </span>
+        {isTiebreaker ? (
+          <span className="tiebreaker-label">Tiebreaker!</span>
+        ) : hasRolled ? (
+          <span className="roll-counter">Roll {rollsUsed} / {totalRolls}</span>
+        ) : null}
       </div>
 
       <div className="dice-grid">
-        {player.dice.map((value, i) => (
-          <Die
-            key={i}
-            value={value}
-            frozen={player.frozen[i]}
-            rolling={isRolling && !player.frozen[i] && value !== 0}
-            disabled={!canFreeze}
-            playerNum={playerNum}
-            size={dieSize}
-            onToggleFreeze={() => onToggleFreeze(i)}
-          />
-        ))}
+        {player.dice.map((value, i) => {
+          const showRolling = isRolling && !player.frozen[i]
+          const dieValue = showRolling ? (displayValues[i] || 1) : value
+          const isGameEnd = highlightValue !== undefined
+
+          return (
+            <Die
+              key={i}
+              value={dieValue}
+              frozen={isGameEnd ? false : player.frozen[i]}
+              highlighted={isGameEnd && value === highlightValue}
+              rolling={showRolling}
+              disabled={!canFreeze}
+              playerNum={playerNum}
+              size={dieSize}
+              index={i}
+              onToggleFreeze={() => onToggleFreeze(i)}
+            />
+          )
+        })}
       </div>
 
       <div className="player-actions">
-        {hasRolled && player.rollsLeft > 0 && (
-          <div className="rolls-left">
-            {player.rollsLeft} roll{player.rollsLeft > 1 ? 's' : ''} left
-          </div>
-        )}
-
         {isWaiting ? (
           <div className="waiting-text">Waiting for opponent...</div>
         ) : (
-          <>
-            <button
-              className={`roll-btn p${playerNum} ${!canRoll ? 'disabled' : ''}`}
-              onClick={handleRoll}
-            >
-              {!hasRolled ? 'Roll' : 'Re-roll'}
-            </button>
-            {canLockIn && (
-              <button className="lock-in-btn" onClick={onLockIn}>
-                Lock In
-              </button>
-            )}
-          </>
+          <button
+            className={`roll-btn p${playerNum} ${!canRoll ? 'disabled' : ''}`}
+            onClick={handleRoll}
+          >
+            {isTiebreaker ? 'Tiebreaker Roll' : !hasRolled ? 'Roll' : 'Re-roll'}
+          </button>
         )}
       </div>
-
-      {phase === 'roundEnd' && latestResult && (
-        <div className="round-end-overlay">
-          <div
-            className={`round-result-label ${
-              latestResult.winner === playerNum
-                ? 'win'
-                : latestResult.winner === 0
-                  ? 'draw-result'
-                  : 'lose'
-            }`}
-          >
-            {latestResult.winner === playerNum
-              ? 'Round Won!'
-              : latestResult.winner === 0
-                ? 'Draw!'
-                : 'Round Lost'}
-          </div>
-          <div className="round-result-detail">
-            {playerNum === 1
-              ? `${latestResult.p1Best.count}\u00d7 ${latestResult.p1Best.value}s`
-              : `${latestResult.p2Best.count}\u00d7 ${latestResult.p2Best.value}s`}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

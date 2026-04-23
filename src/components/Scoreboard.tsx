@@ -1,40 +1,18 @@
-import type { RoundResult } from '../hooks/useGameState'
-
 interface ScoreboardProps {
-  roundResults: RoundResult[]
-  totalRounds: number
-  p1Score: number
-  p2Score: number
+  p1GamesWon: number
+  p2GamesWon: number
   onOpenSettings: () => void
 }
 
-export function Scoreboard({
-  roundResults,
-  totalRounds,
-  p1Score,
-  p2Score,
-  onOpenSettings,
-}: ScoreboardProps) {
+export function Scoreboard({ p1GamesWon, p2GamesWon, onOpenSettings }: ScoreboardProps) {
   return (
     <div className="scoreboard">
-      <span className="scoreboard-score p2">{p2Score}</span>
-
-      <div className="scoreboard-dots">
-        {Array.from({ length: totalRounds }, (_, i) => {
-          const result = roundResults[i]
-          const cls = result
-            ? result.winner === 1
-              ? 'p1-win'
-              : result.winner === 2
-                ? 'p2-win'
-                : 'draw'
-            : ''
-          return <div key={i} className={`scoreboard-dot ${cls}`} />
-        })}
+      <span className="scoreboard-score p1">{p1GamesWon}</span>
+      <div className="scoreboard-title">
+        <span className="scoreboard-word flipped">Dicey</span>
+        <span className="scoreboard-word">Dicey</span>
       </div>
-
-      <span className="scoreboard-score p1">{p1Score}</span>
-
+      <span className="scoreboard-score p2">{p2GamesWon}</span>
       <button className="settings-btn" onClick={onOpenSettings} aria-label="Settings">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
           <path

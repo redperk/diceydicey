@@ -48,8 +48,3 @@ export function getRoundWinner(p1Dice: number[], p2Dice: number[]): RoundResult 
   return { winner, p1Best, p2Best }
 }
 
-export function getGameWinner(p1RoundsWon: number, p2RoundsWon: number): 0 | 1 | 2 {
-  if (p1RoundsWon > p2RoundsWon) return 1
-  if (p2RoundsWon > p1RoundsWon) return 2
-  return 0
-}
