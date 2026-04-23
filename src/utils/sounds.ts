@@ -131,29 +131,29 @@ export function playDiceRoll(): void {
   if (!ctx) return
 
   const start = ctx.currentTime
-  const totalDuration = 0.75
+  const totalDuration = 0.95
 
-  const initialCluster = 8 + Math.floor(Math.random() * 4)
+  const initialCluster = 5 + Math.floor(Math.random() * 3)
   for (let i = 0; i < initialCluster; i++) {
-    const when = start + Math.random() * 0.06
+    const when = start + Math.random() * 0.1
     const intensity = 0.55 + Math.random() * 0.4
     scheduleDiceImpact(ctx, when, intensity)
   }
 
-  const tumbleCount = 30 + Math.floor(Math.random() * 8)
+  const tumbleCount = 16 + Math.floor(Math.random() * 5)
   for (let i = 0; i < tumbleCount; i++) {
     const progress = i / Math.max(1, tumbleCount - 1)
-    const baseTime = 0.04 + progress * (totalDuration - 0.04)
-    const jitter = (Math.random() - 0.5) * 0.09
+    const baseTime = 0.08 + progress * (totalDuration - 0.18)
+    const jitter = (Math.random() - 0.5) * 0.16
     const when = start + Math.max(0, baseTime + jitter)
     const fade = 1 - Math.pow(progress, 1.4) * 0.65
     const intensity = (0.3 + Math.random() * 0.4) * fade
     scheduleDiceImpact(ctx, when, Math.max(0.16, intensity))
   }
 
-  const settleCount = 6 + Math.floor(Math.random() * 4)
+  const settleCount = 3 + Math.floor(Math.random() * 3)
   for (let i = 0; i < settleCount; i++) {
-    const when = start + totalDuration - 0.1 + Math.random() * 0.1
+    const when = start + totalDuration - 0.15 + Math.random() * 0.15
     const intensity = 0.3 + Math.random() * 0.25
     scheduleDiceImpact(ctx, when, intensity)
   }

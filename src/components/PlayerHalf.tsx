@@ -38,7 +38,7 @@ export function PlayerHalf({
     rollingTimeout.current = window.setTimeout(() => {
       onRoll()
       setIsRolling(false)
-    }, 800)
+    }, 1000)
   }, [isRolling, player.rollsLeft, isPlayable, onRoll])
 
   useEffect(() => {
@@ -53,7 +53,7 @@ export function PlayerHalf({
       )
 
     setDisplayValues(randomize())
-    const interval = setInterval(() => setDisplayValues(randomize()), 140)
+    const interval = setInterval(() => setDisplayValues(randomize()), 80)
     return () => clearInterval(interval)
   }, [isRolling, diceCount, player.frozen, player.dice])
 
