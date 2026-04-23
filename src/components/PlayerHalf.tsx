@@ -77,26 +77,41 @@ export function PlayerHalf({
       </div>
 
       <div className="dice-grid">
-        {player.dice.map((value, i) => {
-          const showRolling = isRolling && !player.frozen[i]
-          const dieValue = showRolling ? (displayValues[i] || 1) : value
+        {(() => {
+          const topRowCount = Math.ceil(diceCount / 2)
           const isGameEnd = highlightValue !== undefined
-
+          const renderDie = (i: number) => {
+            const value = player.dice[i]
+            const showRolling = isRolling && !player.frozen[i]
+            const dieValue = showRolling ? (displayValues[i] || 1) : value
+            return (
+              <Die
+                key={i}
+                value={dieValue}
+                frozen={isGameEnd ? false : player.frozen[i]}
+                highlighted={isGameEnd && value === highlightValue}
+                rolling={showRolling}
+                disabled={!canFreeze}
+                playerNum={playerNum}
+                size={dieSize}
+                index={i}
+                onToggleFreeze={() => onToggleFreeze(i)}
+              />
+            )
+          }
           return (
-            <Die
-              key={i}
-              value={dieValue}
-              frozen={isGameEnd ? false : player.frozen[i]}
-              highlighted={isGameEnd && value === highlightValue}
-              rolling={showRolling}
-              disabled={!canFreeze}
-              playerNum={playerNum}
-              size={dieSize}
-              index={i}
-              onToggleFreeze={() => onToggleFreeze(i)}
-            />
+            <>
+              <div className="dice-row">
+                {Array.from({ length: topRowCount }, (_, i) => renderDie(i))}
+              </div>
+              {diceCount > topRowCount && (
+                <div className="dice-row">
+                  {Array.from({ length: diceCount - topRowCount }, (_, i) => renderDie(topRowCount + i))}
+                </div>
+              )}
+            </>
           )
-        })}
+        })()}
       </div>
 
       <div className="player-actions">
