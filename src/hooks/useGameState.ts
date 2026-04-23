@@ -58,6 +58,16 @@ function prepareTiebreakerPlayer(player: PlayerState, best: BestGroup): PlayerSt
   }
 }
 
+function autoFinishIfDone(player: PlayerState): PlayerState {
+  if (player.rollsLeft <= 0) return player
+  const allFrozen = player.frozen.every(Boolean)
+  const allSame = player.dice.length > 0 && player.dice.every(d => d !== 0 && d === player.dice[0])
+  if (allFrozen || allSame) {
+    return { ...player, rollsLeft: 0 }
+  }
+  return player
+}
+
 function resolveRolls(state: GameState): GameState {
   if (state.player1.rollsLeft > 0 || state.player2.rollsLeft > 0) return state
 
@@ -86,7 +96,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const newDice = player.dice.map((d, i) =>
         player.frozen[i] ? d : Math.floor(Math.random() * 6) + 1
       )
-      const updated = { ...player, dice: newDice, rollsLeft: player.rollsLeft - 1 }
+      const rolled = { ...player, dice: newDice, rollsLeft: player.rollsLeft - 1 }
+      const updated = state.phase === 'playing' ? autoFinishIfDone(rolled) : rolled
 
       const newState = action.player === 1
         ? { ...state, player1: updated }
@@ -101,11 +112,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
       const newFrozen = [...player.frozen]
       newFrozen[action.index] = !newFrozen[action.index]
-      const updated = { ...player, frozen: newFrozen }
+      const updated = autoFinishIfDone({ ...player, frozen: newFrozen })
 
-      return action.player === 1
+      const newState = action.player === 1
         ? { ...state, player1: updated }
         : { ...state, player2: updated }
+
+      return resolveRolls(newState)
     }
 
     case 'RESET_GAME':

@@ -162,6 +162,38 @@ describe('useGameState', () => {
     expect(result.current.state.player2.rollsLeft).toBe(3)
   })
 
+  it('auto-finishes player when all dice show the same value', () => {
+    const { result } = renderHook(() => useGameState(defaultSettings))
+
+    let attempts = 0
+    while (attempts < 5000) {
+      act(() => result.current.resetGame())
+      act(() => result.current.dispatch({ type: 'ROLL_DICE', player: 1 }))
+      const dice = result.current.state.player1.dice
+      const allSame = dice.every(d => d === dice[0])
+      if (allSame) {
+        expect(result.current.state.player1.rollsLeft).toBe(0)
+        return
+      }
+      attempts++
+    }
+  })
+
+  it('auto-finishes player when all dice are frozen', () => {
+    const settings: Settings = { ...defaultSettings, diceCount: 4, rollCount: 3 }
+    const { result } = renderHook(() => useGameState(settings))
+
+    act(() => result.current.dispatch({ type: 'ROLL_DICE', player: 1 }))
+
+    act(() => {
+      for (let i = 0; i < 4; i++) {
+        result.current.dispatch({ type: 'TOGGLE_FREEZE', player: 1, index: i })
+      }
+    })
+
+    expect(result.current.state.player1.rollsLeft).toBe(0)
+  })
+
   it('cannot roll during gameEnd', () => {
     const settings: Settings = { ...defaultSettings, rollCount: 1 }
     const { result } = renderHook(() => useGameState(settings))
