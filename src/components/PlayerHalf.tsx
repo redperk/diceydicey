@@ -53,7 +53,7 @@ export function PlayerHalf({
       )
 
     setDisplayValues(randomize())
-    const interval = setInterval(() => setDisplayValues(randomize()), 80)
+    const interval = setInterval(() => setDisplayValues(randomize()), 140)
     return () => clearInterval(interval)
   }, [isRolling, diceCount, player.frozen, player.dice])
 
